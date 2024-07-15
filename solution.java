@@ -1164,7 +1164,7 @@ class Solution {
         return head.next;
     }
 
-    // 合并K个有序链表
+    //  合并K个有序链表
     public ListNode mergeKLists(ListNode[] lists) {
         // 慢的方法
 //        if (lists.length==0)
@@ -1200,18 +1200,478 @@ class Solution {
 
     }
 
+    // region 字节面试题目
+    public int findSmallNumber(int[] nums, int k) {
+        int len = nums.length;
+        int min = Integer.MIN_VALUE;
+        int start = 0;
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < k; i++) {
+            int end = len - k + i;
+            int minIndex = start;
+            for (int j = start; j <= end; j++) {
+                if (nums[minIndex] > nums[j])
+                    minIndex = j;
+            }
+            result.append(nums[minIndex]);
+            start = minIndex + 1;
+        }
+        min = Integer.parseInt(String.valueOf(result));
+        return min;
+    }
+
+    public int findSmallNumber2(int[] nums, int k) {
+        /*
+         * 递归写法
+         * */
+        return Integer.parseInt(dfs(0, nums, k));
+    }
+
+    public String dfs(int start, int[] nums, int k) {
+        if (k == 0)
+            return "";
+        int len = nums.length;
+        int minIndex = start;
+        int end = len - k;
+        for (int i = start; i <= end; i++) {
+            if (nums[i] < nums[minIndex])
+                minIndex = i;
+        }
+        return nums[minIndex] + dfs(minIndex + 1, nums, k - 1);
+    }
+
+    // endregion
+    public ListNode mergeKLists2(ListNode[] lists) {
+        PriorityQueue<ListNode> queue = new PriorityQueue<>((o1, o2) -> {
+            return o1.val - o2.val;
+        });
+        int len = lists.length;
+        for (int i = 0; i < len; i++) {
+            queue.offer(lists[i]);
+        }
+        ListNode dummy = new ListNode(0);
+        ListNode temp = dummy;
+        while (!queue.isEmpty()) {
+            ListNode off = queue.peek();
+            queue.poll();
+            if (off.next != null) {
+                queue.offer(off.next);
+            }
+            temp.next = off;
+            temp = off;
+        }
+        return dummy.next;
+    }
+
+    public List<List<Integer>> levelOrder(TreeNode root) {
+        // 按层序来， 广度优先遍历
+        // 设置一个队列
+        if (root == null)
+            return new ArrayList<List<Integer>>();
+        if (root.left == null && root.right == null) {
+            return new ArrayList<List<Integer>>(root.val);
+        }
+        List<List<Integer>> ans = new ArrayList<List<Integer>>();
+        Queue<TreeNode> queue = new LinkedList<TreeNode>();
+        int count = 1;
+        int nextCount = 0;
+        queue.offer(root);
+        while (!queue.isEmpty()) {
+            List<Integer> temp = new ArrayList<>();
+            while (count != 0) {
+                count--;
+                TreeNode poll = queue.poll();
+                temp.add(poll.val);
+                if (poll.left != null) {
+                    queue.offer(poll.left);
+                    nextCount++;
+                }
+                if (poll.right != null) {
+                    queue.offer(poll.right);
+                    nextCount++;
+                }
+            }
+            count = nextCount;
+            ans.add(temp);
+            nextCount = 0;
+        }
+
+
+        return ans;
+    }
+
+    // region leetcode 236 最近的公共祖先
+    TreeNode closeAncestor;
+
+    public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
+        ancestor(root, p, q);
+        return closeAncestor;
+    }
+
+    public boolean ancestor(TreeNode root, TreeNode p, TreeNode q) {
+        if (root == null) return false;
+        boolean left = ancestor(root.left, p, q);
+        boolean right = ancestor(root.right, p, q);
+        if ((left && right) || (root.val == p.val || root.val == q.val) && (left || right)) {
+            closeAncestor = root;
+        }
+        return left || right || (root.val == p.val || root.val == q.val);
+    }
+
+    // endregion
+
+    // region leetcode124 二叉树中的最大路径和
+
+    // 定义一个map list[0] 记录横着走 list[1]记录左右两边最大值
+
+    Map<TreeNode, List<Integer>> pathMap = new HashMap<>();
+
+    public int maxPathSum(TreeNode root) {
+        // 可以记录每个节点中，往左走 往右走 往左往右中的最大值，链表结构？记录父节点？
+        int max = Integer.MIN_VALUE;
+        searchPath(root);
+        for (TreeNode treeNode : pathMap.keySet()) {
+            List<Integer> integers = pathMap.get(treeNode);
+            for (Integer integer : integers) {
+                if (integer > max)
+                    max = integer;
+            }
+        }
+        return max;
+    }
+
+    public void searchPath(TreeNode root) {
+        if (root == null)
+            return;
+        if (root.left == null && root.right == null) {
+            List<Integer> temp = new ArrayList<>();
+            temp.add(root.val);
+            temp.add(root.val);
+            pathMap.put(root, temp);
+        }
+        searchPath(root.left);
+        searchPath(root.right);
+        List<Integer> temp = new ArrayList<>();
+        int leftValue = root.left != null ? pathMap.get(root.left).get(0) : 0;
+        int rightValue = root.right != null ? pathMap.get(root.right).get(0) : 0;
+        temp.add(Math.max(Math.max(leftValue, rightValue) + root.val, root.val));
+        temp.add(Math.max(leftValue + rightValue + root.val, root.val));
+        pathMap.put(root, temp);
+
+    }
+
+    // endregion
+
+    // region leetcode200 岛屿数量
+    public int numIslands(char[][] grid) {
+        int nums = 0;
+        for (int i = 0; i < grid.length; i++) {
+            for (int j = 0; j < grid[0].length; j++) {
+                if (grid[i][j] == '1') {
+                    nums++;
+                    islandDfs(grid, i, j);
+                }
+            }
+        }
+        return nums;
+    }
+
+    public void islandDfs(char[][] grid, int row, int col) {
+        if (!isArea(grid, row, col)) return;
+        if (grid[row][col] != '1') return;
+        if (grid[row][col] == '1') {
+            grid[row][col] = '2';
+        }
+        islandDfs(grid, row - 1, col);
+        islandDfs(grid, row + 1, col);
+        islandDfs(grid, row, col - 1);
+        islandDfs(grid, row, col + 1);
+    }
+
+    public boolean isArea(char[][] grid, int row, int col) {
+        return 0 <= row && row < grid.length && 0 <= col && col < grid[0].length;
+    }
+
+    // endregion
+
+    // region leetcode994 腐烂橘子
+    public int orangesRotting(int[][] grid) {
+        int count = 0;
+        Queue<List<Integer>> queue = new LinkedList<>();
+        for (int i = 0; i < grid.length; i++) {
+            for (int j = 0; j < grid[0].length; j++) {
+                if (grid[i][j] == 2) {
+                    List<Integer> temp = new ArrayList<>();
+                    temp.add(i);
+                    temp.add(j);
+                    queue.offer(temp);
+                    count++;
+                }
+            }
+        }
+        int time = 0;
+        while (!queue.isEmpty()) {
+            int newCount = 0;
+            // 判断上下左右，如果有新鲜橘子则腐烂
+            while (count != 0) {
+                List<Integer> poll = queue.poll();
+                count--;
+                int row = poll.get(0);
+                int col = poll.get(1);
+                // 上
+                if (isArea(grid, row - 1, col)) {
+                    if (grid[row - 1][col] == 1) {
+                        grid[row - 1][col] = 2;
+                        List<Integer> temp = Arrays.asList(row - 1, col);
+                        queue.offer(temp);
+                        newCount++;
+                    }
+                }
+                // 下
+                if (isArea(grid, row + 1, col)) {
+                    if (grid[row + 1][col] == 1) {
+                        grid[row + 1][col] = 2;
+                        List<Integer> temp = Arrays.asList(row + 1, col);
+                        queue.offer(temp);
+                        newCount++;
+                    }
+                }
+                // 左
+                if (isArea(grid, row, col - 1)) {
+                    if (grid[row][col - 1] == 1) {
+                        grid[row][col - 1] = 2;
+                        List<Integer> temp = Arrays.asList(row, col - 1);
+                        queue.offer(temp);
+                        newCount++;
+                    }
+                }
+                // 右
+                if (isArea(grid, row, col + 1)) {
+                    if (grid[row][col + 1] == 1) {
+                        grid[row][col + 1] = 2;
+                        List<Integer> temp = Arrays.asList(row, col + 1);
+                        queue.offer(temp);
+                        newCount++;
+                    }
+                }
+            }
+            if (newCount > 0)
+                time++;
+            count = newCount;
+            newCount = 0;
+
+        }
+        boolean result = exFresh(grid);
+        return result ? -1 : time - 1;
+    }
+
+    public boolean isArea(int[][] grid, int row, int col) {
+        return 0 <= row && row < grid.length && 0 <= col && col < grid[0].length;
+    }
+
+    public boolean exFresh(int[][] grid) {
+        boolean result;
+        result = Arrays.stream(grid)
+                .flatMapToInt(Arrays::stream)
+                .anyMatch(x -> x == 1);
+        return result;
+    }
+
+    // endregion
+
+    // region leetcode207 课程表，拓扑排序
+    public boolean canFinish(int numCourses, int[][] prerequisites) {
+        // 创建一个邻接表
+        HashMap<Integer, List<Integer>> map = new HashMap<Integer, List<Integer>>();
+        int[] inDegree = new int[numCourses];
+        for (int i = 0; i < numCourses; i++) {
+            map.put(i, new ArrayList<>());
+        }
+        for (int[] prerequisite : prerequisites) {
+            inDegree[prerequisite[0]]++;
+            map.get(prerequisite[1]).add(prerequisite[0]);
+        }
+        Queue<Integer> queue = new LinkedList<>();
+        for (int i = 0; i < numCourses; i++) {
+            if (inDegree[i] == 0)
+                queue.offer(i);
+        }
+        while (!queue.isEmpty()) {
+            for (int i = queue.size(); i > 0; i--) {
+                Integer poll = queue.poll();
+                numCourses--;
+                List<Integer> integers = map.get(poll);
+                for (Integer integer : integers) {
+                    inDegree[integer]--;
+                    if (inDegree[integer] == 0)
+                        queue.offer(integer);
+                }
+
+            }
+        }
+        return numCourses == 0;
+    }
+    // endregion
+
+    // region leetcode22 括号生成 回溯
+    public List<String> generateParenthesis2(int n) {
+        List<String> ans = new ArrayList<>();
+        dfsKuohao(0, 0, n, new StringBuilder(), ans);
+//        System.out.println(ans);
+        return ans;
+    }
+
+    void dfsKuohao(int left, int right, int n, StringBuilder cur, List<String> ans) {
+        if (left < right) return;
+        if (left > n) return;
+        if ((left == right) && (left == n)) {
+            ans.add(cur.toString());
+        }
+        // 添加左括号
+        left++;
+        cur.append('(');
+        dfsKuohao(left, right, n, cur, ans);
+        left--;
+        cur.deleteCharAt(cur.length() - 1);
+
+        right++;
+        cur.append(')');
+        dfsKuohao(left, right, n, cur, ans);
+        right--;
+        cur.deleteCharAt(cur.length() - 1);
+    }
+    // endregion
+
+    // region leetcode79 单词搜索 回溯
+    public boolean exist(char[][] board, String word) {
+        int x = board.length;
+        int y = board[0].length;
+        // 遍历整个板子，找到单词的起点
+        for (int i = 0; i < x; i++) {
+            for (int j = 0; j < y; j++) {
+                if (word.charAt(0) == board[i][j]) {
+                    int[][] flag = new int[x][y];
+                    if (dfs79(i, j, board, 0, word, flag))
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean dfs79(int x, int y, char[][] board, int index, String word, int[][] flag) {
+        if (x < 0 || y < 0 || x >= board.length || y >= board[0].length) return false;
+        if (flag[x][y] == 1 || board[x][y] != word.charAt(index)) return false;
+        if (index + 1 == word.length()) return true;
+        flag[x][y] = 1;
+        // 上下左右
+        boolean up = dfs79(x - 1, y, board, index + 1, word, flag);
+        boolean down = dfs79(x + 1, y, board, index + 1, word, flag);
+        boolean left = dfs79(x, y - 1, board, index + 1, word, flag);
+        boolean right = dfs79(x, y + 1, board, index + 1, word, flag);
+        flag[x][y] = 0;
+        return up || down || right || left;
+    }
+
+    // endregion
+
+    // region leetcode131 分割回文串
+    public List<List<String>> partition(String s) {
+        List<List<String>> ans = new ArrayList<>(); // 存储所有方案
+        dfs131(0, s, new ArrayList<>(), ans); // 从第0个字符开始进行递归
+        return ans;
+    }
+
+    public void dfs131(int index, String s, List<String> cur, List<List<String>> ans) {
+        if (index == s.length()) {
+            ans.add(new ArrayList<>(cur));
+            return;
+        }
+        for (int i = index; i < s.length(); i++) { // aaab
+            if (isPalindrome(s, index, i)) {
+                cur.add(s.substring(index, i + 1));
+                dfs131(i + 1, s, cur, ans);
+                cur.remove(cur.size() - 1);
+            }
+        }
+    }
+
+    public boolean isPalindrome(String s, int left, int right) {
+        while (left < right) {
+            if (s.charAt(left) != s.charAt(right)) return false;
+            left++;
+            right--;
+        }
+        return true;
+    }
+    // endregion
+
+    // region leetcode51 N皇后问题
+    public List<List<String>> solveNQueens(int n) {
+        char[][] map = new char[n][n];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                map[i][j] = '.';
+            }
+        }
+        List<List<String>> ans = new ArrayList<List<String>>();
+        dfs51(0, map, ans);
+        return ans;
+    }
+
+    public List<String> mapToAnswer(char[][] map){
+        List<String> ans = new ArrayList<>();
+        for (int i =0;i<map.length;i++){
+            StringBuilder sb = new StringBuilder();
+            for (int j = 0; j < map.length; j++) {
+                sb.append(map[i][j]);
+            }
+            ans.add(sb.toString());
+        }
+        return ans;
+    }
+    public void dfs51(int row, char[][] map, List<List<String>> ans){
+        if (row == map.length){
+            List<String> list = mapToAnswer(map);
+            ans.add(list);
+            return;
+        }
+        for (int i = 0; i < map.length; i++) {
+            if (isValid(map,row,i,map.length)){
+                map[row][i] = 'Q';
+                dfs51(row+1, map, ans);
+                map[row][i] = '.';
+            }
+        }
+
+    }
+
+    public boolean isValid(char[][] map, int row, int col, int n) {
+        for (int i = 0; i < row; i++) {
+            if (map[i][col] == 'Q') return false; // 判断这一列上是否有Q
+        }
+        for (int i = row, j = col; i >= 0 && j >= 0; i--, j--) {
+            if (map[i][j] == 'Q') return false; // 判断左上角是否有Q
+        }
+        for (int i = row, j = col; i >= 0 && j < n; i--, j++) {
+            if (map[i][j] == 'Q') return false; // 判断右上角是否有Q
+        }
+        return true;
+    }
+    // endregion
+
+    // region leetcode35 搜索插入位置
+    public int searchInsert(int[] nums, int target) {
+        // 二分查找哇
+
+    }
+    // endregion
 
     public static void main(String[] args) {
         Solution solution = new Solution();
-        ListNode l1 = new ListNode(1);
-        ListNode l2 = new ListNode(2);
-        ListNode l3 = new ListNode(3);
-        ListNode l4 = new ListNode(4);
-        l1.next = l2;
-        l2.next = l3;
-        l3.next = l4;
-        System.out.println(solution.isPalindrome(l1));
-
+        String word = "aab";
+        List<List<String>> partition = solution.partition(word);
+        System.out.println(partition);
 
     }
 
@@ -1253,6 +1713,7 @@ class LRUCache {
 
 
     }
+
     int capacity; // 最大容量
     int size; // 记录当前容量
     DLinkedNode tail, head;
@@ -1271,7 +1732,7 @@ class LRUCache {
 
     public int get(int key) {
         DLinkedNode node = map.get(key);
-        if (node==null){
+        if (node == null) {
             return -1;
         }
         // 要将这个node移动到第一个区
@@ -1281,40 +1742,61 @@ class LRUCache {
 
     public void put(int key, int value) {
         DLinkedNode node = map.get(key);
-        if (node!=null){
+        if (node != null) {
             node.value = value;
             move2head(node);
-        }else {
-            DLinkedNode newNode = new DLinkedNode(key,value);
-            map.put(key,newNode);
+        } else {
+            DLinkedNode newNode = new DLinkedNode(key, value);
+            map.put(key, newNode);
             add2head(newNode);
             size++;
-            if (size>capacity){
+            if (size > capacity) {
                 DLinkedNode tailNode = removeTail();
                 map.remove(tailNode.key);
                 size--;
             }
         }
     }
-    private void add2head(DLinkedNode node){
+
+    private void add2head(DLinkedNode node) {
         node.prev = head;
         node.next = head.next;
         head.next.prev = node;
         head.next = node;
     }
 
-    private void removeNode(DLinkedNode node){
+    private void removeNode(DLinkedNode node) {
         node.prev.next = node.next;
         node.next.prev = node.prev;
     }
 
-    private void move2head(DLinkedNode node){
+    private void move2head(DLinkedNode node) {
         removeNode(node);
         add2head(node);
     }
-    private DLinkedNode removeTail(){
+
+    private DLinkedNode removeTail() {
         DLinkedNode res = tail.prev;
         removeNode(res);
         return res;
+    }
+}
+
+class TreeNode {
+    int val;
+    TreeNode left;
+    TreeNode right;
+
+    TreeNode() {
+    }
+
+    TreeNode(int val) {
+        this.val = val;
+    }
+
+    TreeNode(int val, TreeNode left, TreeNode right) {
+        this.val = val;
+        this.left = left;
+        this.right = right;
     }
 }
