@@ -37,5 +37,6 @@ public class RxJavaDemo {
         // 输出最终的共享列表和计数器的值
         System.out.println("Shared List: " + sharedList);
         System.out.println("Counter: " + counter.get());
+
     }
 }
